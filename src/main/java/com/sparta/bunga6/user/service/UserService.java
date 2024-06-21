@@ -2,18 +2,17 @@ package com.sparta.bunga6.user.service;
 
 import com.sparta.bunga6.jwt.RefreshTokenRepository;
 import com.sparta.bunga6.user.dto.ProfileRequest;
-import com.sparta.bunga6.user.dto.ProfileResponse;
 import com.sparta.bunga6.user.dto.SignupRequest;
 import com.sparta.bunga6.user.dto.UpdatePasswordRequest;
 import com.sparta.bunga6.user.entity.User;
+import com.sparta.bunga6.user.entity.UserRoleEnum;
 import com.sparta.bunga6.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -22,6 +21,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
+
+    @Value("${admin.token}")
+    private String adminToken;
 
     /**
      * 회원 가입
@@ -32,19 +34,21 @@ public class UserService {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("이미 존재하는 ID 입니다.");
         }
-        // 비밀번호 인코딩 & 사용자 생성
+        // 사용자 ROLE 확인
+        UserRoleEnum role = UserRoleEnum.USER;
+        if (request.isAdmin()) {
+            if (!request.getAdminToken().equals(adminToken)) {
+                throw new IllegalArgumentException("일치하지 않는 어드민 토큰입니다.");
+            }
+            role = UserRoleEnum.ADMIN;
+        }
+
         String encodedPassword = passwordEncoder.encode(request.getPassword());
-        User user = new User(request, encodedPassword);
+
+        User user = new User(request, encodedPassword, role);
+        user.addPasswordToHistory(encodedPassword);
 
         return userRepository.save(user);
-    }
-
-    /**
-     * 회원 찾기
-     */
-    public User getUser(Long id) {
-        return userRepository.findById(id).orElseThrow(() ->
-                new IllegalArgumentException("userId가 " + id + " 인 사용자가 존재하지 않습니다."));
     }
 
     /**
@@ -52,51 +56,41 @@ public class UserService {
      */
     @Transactional
     public Long logout(User user) {
-        deleteRefreshToken(user);
+        refreshTokenRepository.deleteByUsername(user.getUsername());
         return user.getId();
-    }
-
-    /**
-     * Refresh 토큰 삭제
-     */
-    @Transactional
-    public void deleteRefreshToken(User user) {
-        String username = user.getUsername();
-        refreshTokenRepository.findByUsername(username).ifPresent(refreshTokenRepository::delete);
-    }
-
-    /**
-     * 프로필 조회
-     */
-    public ProfileResponse getProfile(Long id) {
-        return new ProfileResponse(getUser(id));
     }
 
     /**
      * 프로필 수정
      */
     @Transactional
-    public ProfileResponse updateProfile(Long id, ProfileRequest request) {
-        User user = getUser(id);
-        user.verifyUser(id);
+    public User updateProfile(Long id, ProfileRequest request) {
+        User user = getUserById(id);
         user.updateProfile(request);
 
-        return new ProfileResponse(user);
+        return user;
     }
 
     /**
      * 비밀번호 수정
      */
     @Transactional
-    public ProfileResponse updatePassword(Long id, UpdatePasswordRequest request) {
-        User user = getUser(id);
-        user.verifyUser(id);
+    public User updatePassword(Long id, UpdatePasswordRequest request) {
+        User user = getUserById(id);
         validatePassword(request.getOldPassword(), user.getPassword());
         validateDuplicatePassword(request.getNewPassword(), user.getPassword());
 
         user.updatePassword(passwordEncoder.encode(request.getNewPassword()));
 
-        return new ProfileResponse(user);
+        return user;
+    }
+
+    /**
+     * 회원 조회
+     */
+    public User getUserById(Long id) {
+        return userRepository.findById(id).orElseThrow(() ->
+                new IllegalArgumentException("userId가 " + id + " 인 사용자가 존재하지 않습니다."));
     }
 
     /**
