@@ -44,7 +44,7 @@ public class UserController {
     /**
      * 로그아웃
      */
-    @GetMapping("/user/logout")
+    @PostMapping("/user/logout")
     public ResponseEntity<CommonResponse<?>> logout(
             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
@@ -60,8 +60,7 @@ public class UserController {
     public ResponseEntity<CommonResponse<?>> getProfile(
             @PathVariable Long userId
     ) {
-        User user = userService.getUserById(userId);
-        ProfileResponse response = new ProfileResponse(user);
+        ProfileResponse response = userService.getProfile(userId);
 
         return getResponseEntity(response, "프로필 조회 성공");
     }
@@ -80,8 +79,8 @@ public class UserController {
             return getFieldErrorResponseEntity(bindingResult, "프로필 수정 실패");
         }
         validateUser(userId, userDetails);
-        User user = userService.updateProfile(userId, request);
-        ProfileResponse response = new ProfileResponse(user);
+
+        ProfileResponse response = userService.updateProfile(userId, request);
 
         return getResponseEntity(response, "프로필 수정 성공");
     }
@@ -100,13 +99,13 @@ public class UserController {
             return getFieldErrorResponseEntity(bindingResult, "비밀번호 변경 실패");
         }
         validateUser(userId, userDetails);
-        User user = userService.updatePassword(userId, request);
-        ProfileResponse response = new ProfileResponse(user);
+
+        ProfileResponse response = userService.updatePassword(userId, request);
 
         return getResponseEntity(response, "비빌번호 변경 성공");
     }
 
-    private void validateUser(Long userId, UserDetailsImpl userDetails) {
+    private static void validateUser(Long userId, UserDetailsImpl userDetails) {
         if (!Objects.equals(userId, userDetails.getUser().getId())) {
             throw new IllegalArgumentException("userId " + userId + " 에 해당하는 사용자가 아닙니다.");
         }

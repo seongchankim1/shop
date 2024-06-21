@@ -1,6 +1,5 @@
 package com.sparta.bunga6.user.dto;
 
-import com.sparta.bunga6.user.entity.UserRoleEnum;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -26,8 +25,7 @@ public class SignupRequest {
     @NotBlank
     private String address;
 
-    private boolean admin = false;
-
-    private String adminToken = "";
+    @NotBlank
+    private String introduce;
 
 }
