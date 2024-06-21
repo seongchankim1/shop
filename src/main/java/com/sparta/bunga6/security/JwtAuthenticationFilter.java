@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sparta.bunga6.jwt.JwtProvider;
 import com.sparta.bunga6.jwt.RefreshTokenService;
 import com.sparta.bunga6.user.dto.LoginRequest;
+import com.sparta.bunga6.user.entity.UserRole;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,7 +19,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import java.io.IOException;
 
-import static jakarta.servlet.http.HttpServletResponse.*;
+import static jakarta.servlet.http.HttpServletResponse.SC_OK;
+import static jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 
 @Slf4j
 public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
@@ -33,11 +35,9 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         setFilterProcessesUrl("/api/user/login");
     }
 
-    /**
-     * 로그인 시도
-     */
     @Override
     public Authentication attemptAuthentication(HttpServletRequest req, HttpServletResponse res) throws AuthenticationException {
+        log.info("인증 시도");
         try {
             // json to object
             LoginRequest requestDto = new ObjectMapper()
@@ -56,22 +56,20 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         }
     }
 
-    /**
-     * 로그인 성공 및 JWT 생성
-     */
     @Override
-    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException {
-        UserDetailsImpl userDetails = (UserDetailsImpl) authResult.getPrincipal();
-        String username = userDetails.getUsername();
+    protected void successfulAuthentication(HttpServletRequest req, HttpServletResponse res, FilterChain chain, Authentication authResult) throws IOException {
+        log.info("인증 성공 및 JWT 생성");
+        String username = ((UserDetailsImpl) authResult.getPrincipal()).getUsername();
+        UserRole role = ((UserDetailsImpl) authResult.getPrincipal()).getUser().getRole();
 
-        String accessToken = jwtProvider.createAccessToken(username);
-        String refreshToken = jwtProvider.createRefreshToken(username);
+        String accessToken = jwtProvider.createAccessToken(username, role);
+        String refreshToken = jwtProvider.createRefreshToken(username, role);
 
         // 헤더에 액세스 토큰 추가
-        response.addHeader(JwtProvider.AUTHORIZATION_HEADER, accessToken);
+        res.addHeader(JwtProvider.AUTHORIZATION_HEADER, accessToken);
 
         // 쿠키에 리프레시 토큰 추가
-        jwtProvider.addJwtToCookie(refreshToken, response);
+        jwtProvider.addJwtToCookie(refreshToken, res);
 
         // DB에 리프레시 토큰이 이미 있으면 수정, 없으면 저장
         refreshTokenService.save(username, refreshToken);
@@ -79,16 +77,16 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         log.info("로그인 성공 : {}", username);
 
         // 응답 메시지 작성
-        response.setStatus(SC_OK);
-        response.setCharacterEncoding("UTF-8");
-        response.setContentType("application/json");
+        res.setStatus(SC_OK);
+        res.setCharacterEncoding("UTF-8");
+        res.setContentType("application/json");
 
         // JSON 응답 생성
         String jsonResponse = new ObjectMapper().writeValueAsString(
                 new ApiResponse(SC_OK, "로그인 성공", accessToken, refreshToken)
         );
 
-        response.getWriter().write(jsonResponse);
+        res.getWriter().write(jsonResponse);
     }
 
     /**

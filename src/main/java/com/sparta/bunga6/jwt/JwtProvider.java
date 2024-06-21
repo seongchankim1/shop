@@ -1,5 +1,6 @@
 package com.sparta.bunga6.jwt;
 
+import com.sparta.bunga6.user.entity.UserRole;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
@@ -27,8 +28,11 @@ public class JwtProvider {
     public static final String BEARER_PREFIX = "Bearer ";
     public static final String AUTHORIZATION_HEADER = "Authorization";
     public static final String REFRESH_TOKEN_COOKIE_NAME = "RefreshToken";
+    public static final String AUTHORIZATION_KEY = "auth";
 
-    private final RefreshTokenService refreshTokenService;
+    private static final int REFRESH_TOKEN_TIME = 14 * 24 * 60 * 60 * 1000; // 2주
+
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Value("${jwt.secret.key}")
     private String secretKey;
@@ -43,16 +47,16 @@ public class JwtProvider {
     /**
      * Access 토큰 생성
      */
-    public String createAccessToken(String username) {
+    public String createAccessToken(String username, UserRole role) {
         Date date = new Date();
 
-        // Access 토큰 만료기간 (30분)
-        long ACCESS_TOKEN_TIME = 10 * 1000L;
-//        long ACCESS_TOKEN_TIME = 30 * 60 * 1000L;
+        // Access 토큰 만료기간
+        long accessTokenTime = 10 * 1000L; // 10초
 
         return BEARER_PREFIX + Jwts.builder()
                 .setSubject(username)
-                .setExpiration(new Date(date.getTime() + ACCESS_TOKEN_TIME))
+                .claim(AUTHORIZATION_KEY, role)
+                .setExpiration(new Date(date.getTime() + accessTokenTime))
                 .setIssuedAt(date) // 발급일
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
@@ -61,14 +65,12 @@ public class JwtProvider {
     /**
      * Refresh 토큰 생성
      */
-    public String createRefreshToken(String username) {
+    public String createRefreshToken(String username, UserRole role) {
         Date date = new Date();
-
-        // Refresh 토큰 만료기간 (2주)
-        long REFRESH_TOKEN_TIME = 14 * 24 * 60 * 60 * 1000L;
 
         return BEARER_PREFIX + Jwts.builder()
                 .setSubject(username)
+                .claim(AUTHORIZATION_KEY, role)
                 .setExpiration(new Date(date.getTime() + REFRESH_TOKEN_TIME))
                 .setIssuedAt(date) // 발급일
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -86,7 +88,7 @@ public class JwtProvider {
         cookie.setHttpOnly(true);
 //        cookie.setSecure(true);
         cookie.setPath("/");
-        cookie.setMaxAge(14 * 24 * 60 * 60); // 2주
+        cookie.setMaxAge(REFRESH_TOKEN_TIME);
 
         response.addCookie(cookie);
     }
@@ -114,8 +116,8 @@ public class JwtProvider {
         }
         for (Cookie cookie : cookies) {
             if (cookie.getName().equals(REFRESH_TOKEN_COOKIE_NAME)) {
-                String bearerToken = URLDecoder.decode(cookie.getValue(), StandardCharsets.UTF_8);
-                return bearerToken.substring(7);
+                return URLDecoder.decode(cookie.getValue(), StandardCharsets.UTF_8)
+                        .substring(7);
             }
         }
         return null;
@@ -146,14 +148,22 @@ public class JwtProvider {
     public boolean validateRefreshToken(String token) {
         log.info("Refresh 토큰 검증");
         String username = getUsernameFromToken(token);
-        return refreshTokenService.findByUsername(username).isPresent();
+        return refreshTokenRepository.findByUsername(username).isPresent();
     }
 
     /**
-     * 토큰에서 사용자 정보 가져오기
+     * 토큰에서 username 가져오기
      */
     public String getUsernameFromToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().getSubject();
+    }
+
+    /**
+     * 토큰에서 role 가져오기
+     */
+    public UserRole getRoleFromToken(String token) {
+        Claims claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+        return claims.get(AUTHORIZATION_KEY, UserRole.class);
     }
 
     /**

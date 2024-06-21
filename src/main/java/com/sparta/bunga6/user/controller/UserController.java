@@ -4,6 +4,7 @@ import com.sparta.bunga6.base.dto.CommonResponse;
 import com.sparta.bunga6.security.UserDetailsImpl;
 import com.sparta.bunga6.user.dto.*;
 import com.sparta.bunga6.user.entity.User;
+import com.sparta.bunga6.user.entity.UserRole;
 import com.sparta.bunga6.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Objects;
 
 import static com.sparta.bunga6.util.ControllerUtil.getFieldErrorResponseEntity;
@@ -35,6 +37,7 @@ public class UserController {
         if (bindingResult.hasErrors()) {
             return getFieldErrorResponseEntity(bindingResult, "회원가입 실패");
         }
+
         User user = userService.signup(request);
         SignupResponse response = new SignupResponse(user);
 
@@ -44,7 +47,7 @@ public class UserController {
     /**
      * 로그아웃
      */
-    @PostMapping("/user/logout")
+    @GetMapping("/user/logout")
     public ResponseEntity<CommonResponse<?>> logout(
             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
@@ -60,7 +63,8 @@ public class UserController {
     public ResponseEntity<CommonResponse<?>> getProfile(
             @PathVariable Long userId
     ) {
-        ProfileResponse response = userService.getProfile(userId);
+        User user = userService.getUser(userId);
+        ProfileResponse response = new ProfileResponse(user);
 
         return getResponseEntity(response, "프로필 조회 성공");
     }
@@ -80,7 +84,8 @@ public class UserController {
         }
         validateUser(userId, userDetails);
 
-        ProfileResponse response = userService.updateProfile(userId, request);
+        User user = userService.updateProfile(userId, request);
+        ProfileResponse response = new ProfileResponse(user);
 
         return getResponseEntity(response, "프로필 수정 성공");
     }
@@ -100,14 +105,65 @@ public class UserController {
         }
         validateUser(userId, userDetails);
 
-        ProfileResponse response = userService.updatePassword(userId, request);
+        User user = userService.updatePassword(userId, request);
+        ProfileResponse response = new ProfileResponse(user);
 
         return getResponseEntity(response, "비빌번호 변경 성공");
     }
 
-    private static void validateUser(Long userId, UserDetailsImpl userDetails) {
+    /**
+     * 전체 회원 조회 (관리자 전용)
+     */
+    @GetMapping("/users")
+    public ResponseEntity<CommonResponse<?>> getAllUsers(
+            @AuthenticationPrincipal UserDetailsImpl userDetails
+    ) {
+        validateAdmin(userDetails);
+
+        List<User> users = userService.getAllUsers();
+        List<ProfileResponse> response = users.stream()
+                .map(ProfileResponse::new).toList();
+
+        return getResponseEntity(response, "전체 회원 조회 성공");
+    }
+
+    /**
+     * 회원 권한 수정 (관리자 전용)
+     */
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<CommonResponse<?>> updateUserRole(
+            @PathVariable Long userId,
+            @Valid @RequestBody RoleRequest request,
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            BindingResult bindingResult
+    ) {
+        if (bindingResult.hasErrors()) {
+            return getFieldErrorResponseEntity(bindingResult, "회원 권한 수정 실패");
+        }
+        validateAdmin(userDetails);
+        validatePathIdWithBody(userId, request.getUserId());
+
+        User user = userService.updateRole(request);
+        ProfileResponse response = new ProfileResponse(user);
+
+        return getResponseEntity(response, "회원 권한 수정 성공");
+    }
+
+    private void validateUser(Long userId, UserDetailsImpl userDetails) {
         if (!Objects.equals(userId, userDetails.getUser().getId())) {
-            throw new IllegalArgumentException("userId " + userId + " 에 해당하는 사용자가 아닙니다.");
+            throw new IllegalArgumentException("해당 id의 회원이 아닙니다.");
+        }
+    }
+
+    private void validateAdmin(UserDetailsImpl userDetails) {
+        if (!userDetails.getUser().getRole().equals(UserRole.ADMIN)) {
+            throw new IllegalArgumentException("관리자 전용 기능입니다.");
+        }
+    }
+
+    private void validatePathIdWithBody(Long pathId, Long bodyId) {
+        if (!pathId.equals(bodyId)) {
+            throw new IllegalArgumentException("PathVariable의 id가 RequestBody의 id와 일치하지 않습니다.");
         }
     }
 

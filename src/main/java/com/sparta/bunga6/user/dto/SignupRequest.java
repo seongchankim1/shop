@@ -25,7 +25,8 @@ public class SignupRequest {
     @NotBlank
     private String address;
 
-    @NotBlank
-    private String introduce;
+    private boolean admin = false;
+
+    private String adminToken = "";
 
 }

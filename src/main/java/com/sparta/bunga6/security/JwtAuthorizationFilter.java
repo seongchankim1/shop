@@ -2,12 +2,12 @@ package com.sparta.bunga6.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sparta.bunga6.jwt.JwtProvider;
+import com.sparta.bunga6.user.entity.UserRole;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -32,39 +32,36 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-
-        String accessToken = jwtProvider.getAccessTokenFromHeader(request);
-        String refreshToken = jwtProvider.getRefreshTokenFromRequest(request);
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws ServletException, IOException {
+        String accessToken = jwtProvider.getAccessTokenFromHeader(req);
+        String refreshToken = jwtProvider.getRefreshTokenFromRequest(req);
 
         if (StringUtils.hasText(accessToken)) {
             if (jwtProvider.validateAccessToken(accessToken)) {
                 log.info("액세스 토큰 검증 성공");
                 setAuthentication(jwtProvider.getUsernameFromToken(accessToken));
-            }
-            else if (StringUtils.hasText(refreshToken)) {
-                log.info("액세스 토큰 만료 & 리프레시 토큰 존재");
+
+            } else if (StringUtils.hasText(refreshToken)) {
+                log.info("액세스 토큰 만료");
+
                 if (jwtProvider.validateRefreshToken(refreshToken)) {
-                    log.info("리프레시 토큰 검증 성공");
-                    // 새로운 액세스 토큰 발급
+                    log.info("리프레시 토큰 검증 성공 & 새로운 액세스 토큰 발급");
                     String username = jwtProvider.getUsernameFromToken(refreshToken);
-                    String newAccessToken = jwtProvider.createAccessToken(username);
+                    UserRole role = jwtProvider.getRoleFromToken(refreshToken);
 
-                    // 헤더에 새로운 액세스 토큰 설정
-                    jwtProvider.setHeaderAccessToken(response, newAccessToken);
+                    String newAccessToken = jwtProvider.createAccessToken(username, role);
 
+                    jwtProvider.setHeaderAccessToken(res, newAccessToken);
                     setAuthentication(username);
-                }
-                // 리프레시 토큰 만료 or 검증 실패
-                else {
+
+                } else {
                     log.info("리프레시 토큰 검증 실패");
-                    jwtExceptionHandler(response, "유효하지 않은 Refresh 토큰입니다.", HttpStatus.UNAUTHORIZED);
+                    jwtExceptionHandler(res, HttpStatus.UNAUTHORIZED, "유효하지 않은 Refresh 토큰입니다.");
                     return;
                 }
             }
         }
-
-        filterChain.doFilter(request, response);
+        filterChain.doFilter(req, res);
     }
 
     /**
@@ -72,9 +69,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
      */
     public void setAuthentication(String username) {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
-
         context.setAuthentication(createAuthentication(username));
-
         SecurityContextHolder.setContext(context);
     }
 
@@ -89,31 +84,22 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     /**
      * JWT 예외 처리
      */
-    public void jwtExceptionHandler(HttpServletResponse response, String msg, HttpStatus status) {
-        response.setStatus(status.value());
-        response.setContentType("application/json");
+    public void jwtExceptionHandler(HttpServletResponse res, HttpStatus status, String msg) {
+        int statusCode = status.value();
+        res.setStatus(statusCode);
+        res.setContentType("application/json");
         try {
-            String json = new ObjectMapper()
-                    .writeValueAsString(new HttpResponse(msg, status.value()));
-
-            response.getWriter().write(json);
-
+            String json = new ObjectMapper().writeValueAsString(new HttpResponse(statusCode, msg));
+            res.getWriter().write(json);
         } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
 
-    @Getter
-    @NoArgsConstructor
+    @AllArgsConstructor
     public static class HttpResponse {
-
         private int statusCode;
         private String msg;
-
-        public HttpResponse(String msg, int statusCode) {
-            this.statusCode = statusCode;
-            this.msg = msg;
-        }
     }
 
 }
