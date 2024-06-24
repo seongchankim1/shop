@@ -2,6 +2,7 @@ package com.sparta.bunga6.order.entity;
 
 import com.sparta.bunga6.base.entity.Timestamped;
 import com.sparta.bunga6.delivery.Delivery;
+import com.sparta.bunga6.delivery.DeliveryStatus;
 import com.sparta.bunga6.orderline.OrderLine;
 import com.sparta.bunga6.user.entity.User;
 import jakarta.persistence.*;
@@ -25,37 +26,83 @@ public class Order extends Timestamped {
 
 	@Column(nullable = false)
 	@Enumerated(value = EnumType.STRING)
-	private OrderStatus status;
+	private OrderStatus status; // 주문 상태 [ORDERED, CANCELED]
 
-	@ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id")
 	private User user;
 
-	@OneToOne(cascade = CascadeType.ALL)
+	@OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
 	@JoinColumn(name = "delivery_id")
 	private Delivery delivery;
 
 	@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<OrderLine> orderLineList = new ArrayList<>();
+	private final List<OrderLine> orderLines = new ArrayList<>();
 
-	@Column
-	private int totalPrice;
+	/**
+	 * 정적 팩토리 메서드
+	 */
+	public static Order of(User user, Delivery delivery, OrderLine... orderLines) {
+		Order order = new Order();
+		order.user = user;
+		order.delivery = delivery;
+		for (OrderLine orderLine : orderLines) {
+			order.addOrderItem(orderLine);
+		}
+		order.status = OrderStatus.ORDERED;
 
-	public Order(User user) {
-		this.user = user;
+		return order;
 	}
 
-	public void updateStatus(OrderStatus status) {
-		this.status = status;
+    /**
+	 * 연관관계 편의 메서드
+	 */
+	public void addOrderItem(OrderLine orderLine) {
+		orderLines.add(orderLine);
+		orderLine.setOrder(this);
 	}
 
-	public void addOrderLine(OrderLine orderLine) {
-		orderLineList.add(orderLine);
-		orderLine.assignOrder(this);
+	/**
+	 * 주문 취소
+	 */
+	public void cancel() {
+		checkDeliveryStatus();
+		this.status = OrderStatus.CANCELED;
+		for (OrderLine orderLine : orderLines) {
+			orderLine.cancel();
+		}
 	}
 
-	public void setDelivery(Delivery delivery) {
-		this.delivery = delivery;
-
+	/**
+	 * 배송 주소 변경
+	 */
+	public void updateAddress(String address) {
+		checkDeliveryStatus();
+		this.delivery.updateAddress(address);
 	}
+
+	// 배송 상태 확인
+	private void checkDeliveryStatus() {
+		if (delivery.getStatus() != DeliveryStatus.PREPARING) {
+			throw new IllegalStateException("이미 배송이 시작된 주문입니다.");
+		}
+	}
+
+	/**
+	 * 전체 주문 가격 조회
+	 */
+	public int getTotalPrice() {
+		int totalPrice = 0;
+		for (OrderLine orderLine : orderLines) {
+			totalPrice += orderLine.getTotalPrice();
+		}
+		return totalPrice;
+	}
+
+	public void verifyUser(User user) {
+		if (!user.getId().equals(this.getUser().getId())) {
+			throw new IllegalStateException("해당 주문의 주문자가 아닙니다.");
+		}
+	}
+
 }
