@@ -7,7 +7,6 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +40,7 @@ public class User extends Timestamped {
     private UserRole role; // 사용자 권한 [USER, ADMIN]
 
     @ElementCollection
-    private List<String> passwordHistory = new ArrayList<>();
+    private final List<String> passwordHistory = new ArrayList<>();
 
     /**
      * 생성자
@@ -94,6 +93,15 @@ public class User extends Timestamped {
      */
     public void updateRole(UserRole role) {
         this.role = role;
+    }
+
+    /**
+     * 관리자 권한 검증
+     */
+    public void validateAdmin() {
+        if (this.role.equals(UserRole.USER)) {
+            throw new IllegalArgumentException("관리자 권한이 없는 사용자입니다.");
+        }
     }
 
     public List<String> getPasswordHistory() {
