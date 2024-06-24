@@ -1,17 +1,8 @@
 package com.sparta.bunga6.delivery;
 
 import com.sparta.bunga6.base.entity.Timestamped;
-import com.sparta.bunga6.order.dto.AddressRequest;
-import com.sparta.bunga6.user.entity.User;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.sparta.bunga6.order.entity.Order;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,21 +19,18 @@ public class Delivery extends Timestamped {
 	private Long id;
 
 	@Column(nullable = false)
-	@Enumerated(value = EnumType.STRING)
-	private DeliveryStatus status;
-
-	@Column(nullable = false)
 	private String address;
 
-	public Delivery(User user) {
-		this.address = user.getAddress();
+	@Column(nullable = false)
+	@Enumerated(value = EnumType.STRING)
+	private DeliveryStatus status; // 배송 상태 [PREPARING, SHIPPING, DELIVERED]
+
+	public Delivery(String address) {
+		this.address = address;
 	}
 
-	public void updateStatus(DeliveryStatus status) {
-		this.status = status;
+	public void updateAddress(String address) {
+		this.address = address;
 	}
 
-	public void updateAddress(AddressRequest request) {
-		this.address = request.getAddress();
-	}
 }
