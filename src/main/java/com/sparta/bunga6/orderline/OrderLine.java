@@ -1,20 +1,13 @@
 package com.sparta.bunga6.orderline;
 
 import com.sparta.bunga6.base.entity.Timestamped;
-
 import com.sparta.bunga6.order.entity.Order;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import com.sparta.bunga6.product.entity.Product;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Getter
@@ -27,7 +20,8 @@ public class OrderLine extends Timestamped {
 	@Column(name = "order_line_id")
 	private Long id;
 
-	@ManyToOne(fetch = FetchType.LAZY)
+	@Setter
+    @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "order_id", nullable = false)
 	private Order order;
 
@@ -36,19 +30,37 @@ public class OrderLine extends Timestamped {
 	private Product product;
 
 	@Column(nullable = false)
-	private int count;
+	private int orderPrice; // 주문 가격
 
-	@Column
-	private int orderPrice;
+	@Column(nullable = false)
+	private int count; // 주문 수량
 
-	public OrderLine(Order order, Product product, int count) {
-		this.count = count;
-		this.order = order;
-		this.product = product;
-		this.orderPrice = product.getPrice() * count;
+	/**
+	 * 정적 팩토리 메서드
+	 */
+	public static OrderLine of(Product product, int orderPrice, int count) {
+		OrderLine orderLine = new OrderLine();
+		orderLine.product = product;
+		orderLine.orderPrice = orderPrice;
+		orderLine.count = count;
+
+		product.removeStock(count);
+
+		return orderLine;
 	}
 
-	public void assignOrder(Order order) {
-		this.order = order;
+	/**
+	 * 주문 취소
+	 */
+	public void cancel() {
+		getProduct().addStock(count);
 	}
+
+	/**
+	 * 주문라인 전체 가격 조회
+	 */
+	public int getTotalPrice() {
+		return getOrderPrice() * getCount();
+	}
+
 }
