@@ -1,19 +1,20 @@
 package com.sparta.bunga6.review.dto;
 
-import lombok.Getter;
+import com.sparta.bunga6.review.entity.Review;
+import lombok.Data;
 
-@Getter
+@Data
 public class ReviewResponse {
 
     private final Long id;
+    private final String content;
     private final Long productId;
     private final Long userId;
-    private final String content;
 
-    public ReviewResponse(Long id, Long productId, Long userId, String content) {
-        this.id = id;
-        this.productId = productId;
-        this.userId = userId;
-        this.content = content;
+    public ReviewResponse(Review review) {
+        this.id = review.getId();
+        this.content = review.getContent();
+        this.productId = review.getProduct().getId();
+        this.userId = review.getUser().getId();
     }
 }

@@ -1,11 +1,16 @@
 package com.sparta.bunga6.review.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
-@Getter
-@Setter
+@Data
 public class ReviewRequest {
+
+    @NotNull
     private Long productId;
+
+    @NotBlank
     private String content;
+
 }

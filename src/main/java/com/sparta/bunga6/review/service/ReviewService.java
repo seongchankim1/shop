@@ -1,92 +1,80 @@
 package com.sparta.bunga6.review.service;
 
 import com.sparta.bunga6.product.entity.Product;
-import com.sparta.bunga6.product.repository.ProductRepository;
-import com.sparta.bunga6.review.dto.ReviewResponse;
+import com.sparta.bunga6.product.service.ProductService;
+import com.sparta.bunga6.review.dto.ReviewRequest;
 import com.sparta.bunga6.review.entity.Review;
 import com.sparta.bunga6.review.repository.ReviewRepository;
 import com.sparta.bunga6.user.entity.User;
-import com.sparta.bunga6.user.repository.UserRepository;
-import com.sparta.bunga6.order.repository.OrderRepository;
-import jakarta.transaction.Transactional;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class ReviewService {
 
     private final ReviewRepository reviewRepository;
-    private final UserRepository userRepository;
-    private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
+    private final ProductService productService;
 
-
-    // 리뷰 생성
+    /**
+     * 리뷰 작성
+     */
     @Transactional
-    public ReviewResponse createReview(Long productId, Long userId, String content) {
-        User user = userRepository.findById(userId).orElseThrow(
-                () -> new IllegalStateException("User with id " + userId + " not found")
-        );
+    public Review createReview(ReviewRequest request, User user) {
+        Product product = productService.findProduct(request.getProductId());
+        Review review = Review.of(request.getContent(), product, user);
 
-        Product product = productRepository.findById(productId).orElseThrow(
-                () -> new IllegalStateException("Product with id " + productId + " not found")
-        );
-
-        if (!orderRepository.existsByProductAndUserAndStatus(product, user, "DELIVERED")) {
-            throw new IllegalStateException("상품이 배송 완료되지 않았습니다.");
-        }
-
-        Review review = new Review(content, user, product);
-        reviewRepository.save(review);
-        return new ReviewResponse(review.getId(), review.getProduct().getId(), review.getUser().getId(), review.getContent());
+        return reviewRepository.save(review);
     }
 
-    // 전체 리뷰 조회
-    public List<ReviewResponse> getAllReviews() {
-        List<Review> reviews = reviewRepository.findAll();
-        return reviews.stream()
-                .map(review -> new ReviewResponse(review.getId(), review.getProduct().getId(), review.getUser().getId(), review.getContent()))
-                .collect(Collectors.toList());
+    /**
+     * 특정 게시물의 전체 댓글 조회
+     */
+    public List<Review> findAllProductReview(Long productId) {
+        return reviewRepository.findAllByProductIdOrderByCreatedAt(productId);
     }
 
-    // 특정 상품의 리뷰 조회
-    public List<ReviewResponse> getReviewsByProductId(Long productId) {
-        List<Review> reviews = reviewRepository.findByProductId(productId);
-        return reviews.stream()
-                .map(review -> new ReviewResponse(review.getId(), review.getProduct().getId(), review.getUser().getId(), review.getContent()))
-                .collect(Collectors.toList());
+    /**
+     * 특정 댓글 조회
+     */
+    public Review findReview(Long productId, Long reviewId) {
+        Review review = findById(reviewId);
+        review.verifyProduct(productId);
+
+        return review;
     }
 
-    // 리뷰 수정
+    public Review findById(Long reviewId) {
+        return reviewRepository.findById(reviewId).orElseThrow(() ->
+                new IllegalArgumentException("해당 리뷰가 존재하지 않습니다."));
+    }
+
+    /**
+     * 댓글 수정
+     */
     @Transactional
-    public ReviewResponse updateReview(Long reviewId, String content, Long userId) {
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
+    public Review updateReview(Long productId, Long reviewId, String content, User user) {
+        Review review = findReview(productId, reviewId);
+        review.verifyUser(user);
+        review.update(content);
 
-        if (!review.getUser().getId().equals(userId)) {
-            throw new IllegalStateException("자신의 리뷰만 수정할 수 있습니다.");
-        }
-
-        review.setContent(content);
-        return new ReviewResponse(review.getId(), review.getProduct().getId(), review.getUser().getId(), review.getContent());
+        return review;
     }
 
-    // 리뷰 삭제
+    /**
+     * 댓글 삭제
+     */
     @Transactional
-    public void deleteReview(Long reviewId, Long userId) {
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
-
-        if (!review.getUser().getId().equals(userId)) {
-            throw new IllegalStateException("자신의 리뷰만 삭제할 수 있습니다.");
-        }
-
+    public Long deleteReview(Long productId, Long reviewId, User user) {
+        Review review = findReview(productId, reviewId);
+        review.verifyUser(user);
         reviewRepository.delete(review);
+
+        return reviewId;
     }
+
 }
