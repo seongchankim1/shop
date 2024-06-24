@@ -1,8 +1,8 @@
-package com.sparta.bunga6.order.entity;
+package com.sparta.bunga6.orderline;
 
 import com.sparta.bunga6.base.entity.Timestamped;
-import com.sparta.bunga6.order.dto.OrderCreateRequest;
 
+import com.sparta.bunga6.order.entity.Order;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -15,7 +15,6 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Getter

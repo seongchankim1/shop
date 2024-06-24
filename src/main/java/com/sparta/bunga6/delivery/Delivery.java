@@ -1,4 +1,4 @@
-package com.sparta.bunga6.order.entity;
+package com.sparta.bunga6.delivery;
 
 import com.sparta.bunga6.base.entity.Timestamped;
 import com.sparta.bunga6.order.dto.AddressRequest;

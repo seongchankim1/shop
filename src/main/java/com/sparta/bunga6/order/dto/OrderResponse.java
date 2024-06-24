@@ -3,10 +3,10 @@ package com.sparta.bunga6.order.dto;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.sparta.bunga6.order.entity.Delivery;
-import com.sparta.bunga6.order.entity.DeliveryStatus;
+import com.sparta.bunga6.delivery.Delivery;
+import com.sparta.bunga6.delivery.DeliveryStatus;
 import com.sparta.bunga6.order.entity.Order;
-import com.sparta.bunga6.order.entity.OrderLine;
+import com.sparta.bunga6.orderline.OrderLine;
 import com.sparta.bunga6.order.entity.OrderStatus;
 import com.sparta.bunga6.user.entity.User;
 

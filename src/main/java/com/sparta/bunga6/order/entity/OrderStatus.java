@@ -6,4 +6,5 @@ import lombok.Getter;
 public enum OrderStatus {
 
 	ORDERED, CANCELED
+
 }

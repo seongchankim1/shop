@@ -1,27 +1,18 @@
 package com.sparta.bunga6.product.entity;
 
 import com.sparta.bunga6.base.entity.Timestamped;
-import com.sparta.bunga6.product.dto.RegisterRequest;
-import com.sparta.bunga6.product.dto.UpdateProductRequest;
+import com.sparta.bunga6.exception.NotEnoughStockException;
+import com.sparta.bunga6.product.dto.ProductRequest;
 import com.sparta.bunga6.user.entity.User;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.springframework.data.annotation.CreatedDate;
-
-import java.time.LocalDateTime;
 
 @Entity
-@Setter
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product extends Timestamped {
-
-
-    @CreatedDate
-    @Column(updatable = false)
-    private LocalDateTime writeDate;    // 생성일자
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,7 +20,7 @@ public class Product extends Timestamped {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String name; // 상품이름
+    private String name; // 상품명
 
     @Column(nullable = false)
     private int price; // 가격
@@ -38,25 +29,54 @@ public class Product extends Timestamped {
     private int stockQuantity; // 재고수량
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
-
-    @Column
-    private String username;
-
-    public Product(RegisterRequest request, User user) {
+    /**
+     * 생성자
+     */
+    public Product(ProductRequest request, User user) {
         this.name = request.getName();
         this.price = request.getPrice();
         this.stockQuantity = request.getStockQuantity();
-        this.username = user.getUsername();
+        this.user = user;
     }
 
-    public void updateProduct(UpdateProductRequest request) {
+    /**
+     * 재고 증가
+     */
+    public void addStock(int quantity) {
+        this.stockQuantity += quantity;
+    }
+
+    /**
+     * 재고 감소
+     */
+    public void removeStock(int quantity) {
+        int restStock = this.stockQuantity - quantity;
+        if (restStock < 0) {
+            throw new NotEnoughStockException("재고가 부족합니다.");
+        }
+        this.stockQuantity = restStock;
+    }
+
+    /**
+     * 사용자 검증
+     */
+    public void verifyUser(User user) {
+        if (!user.getId().equals(this.user.getId())) {
+            throw new IllegalArgumentException("해당 상품을 등록한 사용자가 아닙니다.");
+        }
+    }
+
+    /**
+     * 상품 정보 수정
+     */
+    public void update(ProductRequest request) {
         this.name = request.getName();
         this.price = request.getPrice();
         this.stockQuantity = request.getStockQuantity();
-        this.username = user.getUsername();
     }
+
 }
 

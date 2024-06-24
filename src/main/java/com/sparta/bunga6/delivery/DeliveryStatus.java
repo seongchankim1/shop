@@ -1,4 +1,4 @@
-package com.sparta.bunga6.order.entity;
+package com.sparta.bunga6.delivery;
 
 import lombok.Getter;
 
