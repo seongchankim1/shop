@@ -69,25 +69,42 @@ public class ProductService {
         return productStream
                 .skip((page - 1) * 5L)
                 .limit(5)
-                .map(FindProductResponse::new)
+                .map(FindProductResponseDto::new)
                 .toList();
     }
 
-    //상품 정보 업데이트
+    //상품 단건조회
+    public FindProductResponseDto findProduct(Long id) {
+        Product product = productRepository.findById(id).
+                orElseThrow(() ->
+                        new IllegalArgumentException("입력하신 상품 ID가 존재하지 않습니다.")
+                );
+        return new FindProductResponseDto(product);
+    }
+
+    //상품 정보 전체 업데이트
     @Transactional
-    public Product updateProduct(Long id,
-                                 UpdateProductRequest request,
-                                 User user) {
+    public UpdateProductResponseDto updateProduct(Long id,
+                                                  UpdateProductRequestDto requestDto,
+                                                  HttpServletRequest request) {
+        // 토큰 검증
+        String newBearerAccessToken = jwtProvider.getRefreshTokenFromRequest(request);
+        String username = jwtProvider.getUsernameFromToken(newBearerAccessToken);
 
         // 상품 조회
         Product product = productRepository.findById(id).orElseThrow(() ->
                 new IllegalArgumentException("입력하신 상품 ID가 존재하지 않습니다"));
         // 본인 확인
-        if (!user.getId().equals(product.getUser().getId())) {
+        if (!product.getUser().getUsername().equals(username)) {
             throw new IllegalArgumentException("본인의 상품만 수정 할 수 있습니다.");
         }
-        product.updateProduct(request);
-        return product;
+        product.setName(requestDto.getName());
+        product.setPrice(requestDto.getPrice());
+        product.setStockQuantity(requestDto.getStockQuantity());
+
+        Product updateProduct = productRepository.save(product);
+        return
+        new UpdateProductResponseDto(updateProduct);
     }
 
     // 상품삭제

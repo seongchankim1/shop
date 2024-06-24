@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 @Setter
 @Getter
 @NoArgsConstructor
-
 public class Product extends Timestamped {
 
 
