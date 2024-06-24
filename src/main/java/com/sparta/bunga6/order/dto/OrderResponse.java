@@ -1,16 +1,15 @@
 package com.sparta.bunga6.order.dto;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import com.sparta.bunga6.delivery.Delivery;
 import com.sparta.bunga6.delivery.DeliveryStatus;
 import com.sparta.bunga6.order.entity.Order;
-import com.sparta.bunga6.orderline.OrderLine;
 import com.sparta.bunga6.order.entity.OrderStatus;
+import com.sparta.bunga6.orderline.OrderLine;
 import com.sparta.bunga6.user.entity.User;
-
 import lombok.Data;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 public class OrderResponse {
@@ -21,9 +20,8 @@ public class OrderResponse {
 	private OrderStatus orderStatus;
 	private DeliveryStatus deliveryStatus;
 	private String address;
-	private List<OrderLineResponse> orderLines;
 	private int totalPrice;
-
+	private List<OrderLineResponse> orderLines;
 
 	public OrderResponse(Order order, User user, Delivery delivery, OrderLine orderLine) {
 		this.orderId = order.getId();
@@ -37,14 +35,14 @@ public class OrderResponse {
 	public OrderResponse(Order order) {
 		this.orderId = order.getId();
 		this.userId = order.getUser().getId();
-		this.orderLines = order.getOrderLineList().stream()
+		this.orderLines = order.getOrderLines().stream()
 			.map(OrderLineResponse::new)
 			.collect(Collectors.toList());
 		this.deliveryId = order.getDelivery().getId();
 		this.orderStatus = order.getStatus();
 		this.deliveryStatus = order.getDelivery().getStatus();
 		this.address = order.getDelivery().getAddress();
-		this.totalPrice = order.getOrderLineList().stream()
+		this.totalPrice = order.getOrderLines().stream()
 			.mapToInt(OrderLine::getOrderPrice)
 			.sum();
 	}
