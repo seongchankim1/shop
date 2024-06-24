@@ -10,11 +10,11 @@ import com.sparta.bunga6.user.entity.UserRole;
 import com.sparta.bunga6.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +29,7 @@ public class UserService {
     private String adminToken;
 
     /**
-     * 회원 가입
+     * 회원가입
      */
     @Transactional
     public User signup(SignupRequest request) {
@@ -64,10 +64,18 @@ public class UserService {
     }
 
     /**
+     * 전체 회원 조회 (관리자 전용)
+     */
+    public Page<User> findAllUsers(Pageable pageable, User admin) {
+        admin.validateAdmin();
+        return userRepository.findAll(pageable);
+    }
+
+    /**
      * 회원 조회
      */
-    public User getUser(Long id) {
-        return userRepository.findById(id).orElseThrow(() ->
+    public User findUser(Long userId) {
+        return userRepository.findById(userId).orElseThrow(() ->
                 new IllegalArgumentException("존재하지 않는 회원입니다."));
     }
 
@@ -75,8 +83,8 @@ public class UserService {
      * 프로필 수정
      */
     @Transactional
-    public User updateProfile(Long id, ProfileRequest request) {
-        User user = getUser(id);
+    public User updateProfile(Long userId, ProfileRequest request) {
+        User user = findUser(userId);
         user.updateProfile(request);
 
         return user;
@@ -86,8 +94,8 @@ public class UserService {
      * 비밀번호 수정
      */
     @Transactional
-    public User updatePassword(Long id, UpdatePasswordRequest request) {
-        User user = getUser(id);
+    public User updatePassword(Long userId, UpdatePasswordRequest request) {
+        User user = findUser(userId);
         String currentPassword = user.getPassword();
 
         String oldPassword = request.getOldPassword();
@@ -106,18 +114,12 @@ public class UserService {
     }
 
     /**
-     * 전체 회원 조회 (관리자 전용)
-     */
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
-
-    /**
      * 회원 권한 수정 (관리자 전용)
      */
     @Transactional
-    public User updateRole(RoleRequest request) {
-        User user = getUser(request.getUserId());
+    public User updateRole(RoleRequest request, User admin) {
+        admin.validateAdmin();
+        User user = findUser(request.getUserId());
         user.updateRole(request.getRole());
 
         return user;
