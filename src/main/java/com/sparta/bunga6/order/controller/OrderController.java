@@ -1,27 +1,24 @@
 package com.sparta.bunga6.order.controller;
 
 import com.sparta.bunga6.base.dto.CommonResponse;
-import com.sparta.bunga6.order.dto.AddressRequest;
-import com.sparta.bunga6.order.dto.OrderCreateRequest;
+import com.sparta.bunga6.order.dto.OrderAddrRequest;
+import com.sparta.bunga6.order.dto.OrderRequest;
 import com.sparta.bunga6.order.dto.OrderResponse;
 import com.sparta.bunga6.order.entity.Order;
 import com.sparta.bunga6.order.service.OrderService;
 import com.sparta.bunga6.security.UserDetailsImpl;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import static com.sparta.bunga6.util.ControllerUtil.getFieldErrorResponseEntity;
-import static com.sparta.bunga6.util.ControllerUtil.getResponseEntity;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import static com.sparta.bunga6.util.ControllerUtil.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -35,72 +32,82 @@ public class OrderController {
 	 */
 	@PostMapping
 	public ResponseEntity<CommonResponse<?>> createOrder(
-		@Valid @RequestBody OrderCreateRequest requestDto,
-		BindingResult bindingResult,
-		@AuthenticationPrincipal UserDetailsImpl userDetails
+		@Valid @RequestBody OrderRequest request,
+		@AuthenticationPrincipal UserDetailsImpl userDetails,
+		BindingResult bindingResult
 	) {
 		if (bindingResult.hasErrors()) {
 			return getFieldErrorResponseEntity(bindingResult, "주문 실패");
 		}
-		OrderResponse response  = new OrderResponse(orderService.createOrder(requestDto,userDetails.getUser()));
+		Order order = orderService.createOrder(request, userDetails.getUser());
+		OrderResponse response  = new OrderResponse(order);
 
 		return getResponseEntity(response, "주문 성공");
 	}
 
 	/**
-	 * 주문 단건 조회
-	 */
-	@GetMapping("/{ordersId}")
-	public ResponseEntity<CommonResponse<?>> getOrders(
-		@PathVariable Long ordersId,
-		@AuthenticationPrincipal UserDetailsImpl userDetails
-	) {
-		OrderResponse response  = new OrderResponse(orderService.getOrder(ordersId,userDetails.getUser()));
-
-		return getResponseEntity(response, "주문 조회 성공");
-	}
-
-	/**
-	 * 주문 전체 조회
+	 * 전체 주문 조회 (관리자 전용)
 	 */
 	@GetMapping
-	public ResponseEntity<CommonResponse<?>> getAllOrders(@AuthenticationPrincipal UserDetailsImpl userDetails) {
-		List<Order> ordersList = orderService.getAllOrders(userDetails.getUser());
-		List<OrderResponse> response = ordersList.stream()
-			.map(OrderResponse::new)
-			.collect(Collectors.toList());
+	public ResponseEntity<CommonResponse<?>> getAllOrders(
+			@PageableDefault(
+					sort = "createdAt",
+					size = 5,
+					direction = Sort.Direction.DESC
+			) Pageable pageable,
+			@AuthenticationPrincipal UserDetailsImpl userDetails
+	) {
+		Page<Order> page = orderService.findAllOrders(pageable, userDetails.getUser());
+		Page<OrderResponse> response = page.map(OrderResponse::new);
+
+		return getResponseEntity(response, "전체 주문 조회 성공");
+	}
+
+	/**
+	 * 주문 조회
+	 */
+	@GetMapping("/{orderId}")
+	public ResponseEntity<CommonResponse<?>> getOrder(
+		@PathVariable Long orderId,
+		@AuthenticationPrincipal UserDetailsImpl userDetails
+	) {
+		Order order = orderService.findOrder(orderId, userDetails.getUser());
+		OrderResponse response  = new OrderResponse(order);
 
 		return getResponseEntity(response, "주문 조회 성공");
 	}
 
 	/**
-	 * 주문 수정
+	 * 배송 주소 변경
 	 */
 	@PatchMapping("/{orderId}")
-	public ResponseEntity<CommonResponse<?>> updateOrders(
-		@Valid @RequestBody AddressRequest requestDto,
-		BindingResult bindingResult,
-		@PathVariable Long orderId,
-		@AuthenticationPrincipal UserDetailsImpl userDetails
+	public ResponseEntity<CommonResponse<?>> updateAddress(
+			@PathVariable Long orderId,
+			@Valid @RequestBody OrderAddrRequest request,
+			@AuthenticationPrincipal UserDetailsImpl userDetails,
+			BindingResult bindingResult
 	) {
 		if (bindingResult.hasErrors()) {
-			return getFieldErrorResponseEntity(bindingResult, "주문 수정 실패");
+			return getFieldErrorResponseEntity(bindingResult, "배송 주소 변경 실패");
 		}
-		OrderResponse response  = new OrderResponse(orderService.updateOrder(requestDto,orderId,userDetails.getUser()));
+		validatePathIdWithBody(orderId, request.getOrderId());
+		Order order = orderService.updateAddress(request, userDetails.getUser());
+		OrderResponse response  = new OrderResponse(order);
 
-		return getResponseEntity(response, "주문 수정 성공");
+		return getResponseEntity(response, "배송 주소 변경 성공");
 	}
 
 	/**
-	 * 주문 삭제
+	 * 주문 취소
 	 */
-	@DeleteMapping("/{orderId}")
-	public ResponseEntity<CommonResponse<?>> deleteOrders(
-		@PathVariable Long orderId,
-		@AuthenticationPrincipal UserDetailsImpl userDetails
+	@PostMapping("/{orderId}")
+	public ResponseEntity<CommonResponse<?>> cancelOrder(
+			@PathVariable Long orderId,
+			@AuthenticationPrincipal UserDetailsImpl userDetails
 	) {
-		OrderResponse response  = new OrderResponse(orderService.deleteOrder(orderId,userDetails.getUser()));
+		Long response = orderService.cancelOrder(orderId, userDetails.getUser());
 
-		return getResponseEntity(response, "주문 삭제 성공");
+		return getResponseEntity(response, "주문 취소 성공");
 	}
+
 }
