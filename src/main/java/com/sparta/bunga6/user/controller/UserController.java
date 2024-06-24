@@ -4,20 +4,21 @@ import com.sparta.bunga6.base.dto.CommonResponse;
 import com.sparta.bunga6.security.UserDetailsImpl;
 import com.sparta.bunga6.user.dto.*;
 import com.sparta.bunga6.user.entity.User;
-import com.sparta.bunga6.user.entity.UserRole;
 import com.sparta.bunga6.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Objects;
 
-import static com.sparta.bunga6.util.ControllerUtil.getFieldErrorResponseEntity;
-import static com.sparta.bunga6.util.ControllerUtil.getResponseEntity;
+import static com.sparta.bunga6.util.ControllerUtil.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -63,7 +64,7 @@ public class UserController {
     public ResponseEntity<CommonResponse<?>> getProfile(
             @PathVariable Long userId
     ) {
-        User user = userService.getUser(userId);
+        User user = userService.findUser(userId);
         ProfileResponse response = new ProfileResponse(user);
 
         return getResponseEntity(response, "프로필 조회 성공");
@@ -116,13 +117,15 @@ public class UserController {
      */
     @GetMapping("/users")
     public ResponseEntity<CommonResponse<?>> getAllUsers(
+            @PageableDefault(
+                    sort = "createdAt",
+                    size = 5,
+                    direction = Sort.Direction.DESC
+            ) Pageable pageable,
             @AuthenticationPrincipal UserDetailsImpl userDetails
     ) {
-        validateAdmin(userDetails);
-
-        List<User> users = userService.getAllUsers();
-        List<ProfileResponse> response = users.stream()
-                .map(ProfileResponse::new).toList();
+        Page<User> page = userService.findAllUsers(pageable, userDetails.getUser());
+        Page<ProfileResponse> response = page.map(ProfileResponse::new);
 
         return getResponseEntity(response, "전체 회원 조회 성공");
     }
@@ -140,10 +143,9 @@ public class UserController {
         if (bindingResult.hasErrors()) {
             return getFieldErrorResponseEntity(bindingResult, "회원 권한 수정 실패");
         }
-        validateAdmin(userDetails);
         validatePathIdWithBody(userId, request.getUserId());
 
-        User user = userService.updateRole(request);
+        User user = userService.updateRole(request, userDetails.getUser());
         ProfileResponse response = new ProfileResponse(user);
 
         return getResponseEntity(response, "회원 권한 수정 성공");
@@ -152,18 +154,6 @@ public class UserController {
     private void validateUser(Long userId, UserDetailsImpl userDetails) {
         if (!Objects.equals(userId, userDetails.getUser().getId())) {
             throw new IllegalArgumentException("해당 id의 회원이 아닙니다.");
-        }
-    }
-
-    private void validateAdmin(UserDetailsImpl userDetails) {
-        if (!userDetails.getUser().getRole().equals(UserRole.ADMIN)) {
-            throw new IllegalArgumentException("관리자 전용 기능입니다.");
-        }
-    }
-
-    private void validatePathIdWithBody(Long pathId, Long bodyId) {
-        if (!pathId.equals(bodyId)) {
-            throw new IllegalArgumentException("PathVariable의 id가 RequestBody의 id와 일치하지 않습니다.");
         }
     }
 
