@@ -13,7 +13,4 @@ public class OrderRequest {
     @NotNull
     private int count;
 
-    @NotBlank
-    private String address;
-
 }
