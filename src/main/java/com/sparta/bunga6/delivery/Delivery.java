@@ -27,7 +27,6 @@ public class Delivery extends Timestamped {
 
 	public Delivery(String address) {
 		this.address = address;
-		this.status = DeliveryStatus.PREPARING;
 	}
 
 	public void updateAddress(String address) {
