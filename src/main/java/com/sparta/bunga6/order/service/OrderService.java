@@ -30,7 +30,7 @@ public class OrderService {
 	public Order createOrder(OrderRequest request, User user) {
 		Product product = productService.findProduct(request.getProductId());
 		OrderLine orderLine = OrderLine.of(product, product.getPrice(), request.getCount());
-		Delivery delivery = new Delivery(request.getAddress());
+		Delivery delivery = new Delivery(user.getAddress());
 
 		Order order = Order.of(user, delivery, orderLine);
 
