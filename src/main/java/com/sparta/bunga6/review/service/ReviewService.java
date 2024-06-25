@@ -59,7 +59,7 @@ public class ReviewService {
     @Transactional
     public Review updateReview(Long productId, Long reviewId, String content, User user) {
         Review review = findReview(productId, reviewId);
-        review.verifyUser(user);
+        review.verifyUser(user.getId());
         review.update(content);
 
         return review;
@@ -71,7 +71,7 @@ public class ReviewService {
     @Transactional
     public Long deleteReview(Long productId, Long reviewId, User user) {
         Review review = findReview(productId, reviewId);
-        review.verifyUser(user);
+        review.verifyUser(user.getId());
         reviewRepository.delete(review);
 
         return reviewId;
