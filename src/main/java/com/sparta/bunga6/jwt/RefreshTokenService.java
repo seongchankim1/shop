@@ -13,13 +13,13 @@ public class RefreshTokenService {
 
     @Transactional
     public void save(String username, String refreshToken) {
-//        RefreshToken existToken = refreshTokenRepository.findByUsername(username).orElse(null);
-//        if (existToken == null) {
-//            refreshTokenRepository.save(new RefreshToken(username, refreshToken));
-//        } else {
-//            existToken.update(refreshToken);
-//        }
-        refreshTokenRepository.save(new RefreshToken(username, refreshToken));
+        RefreshToken existToken = refreshTokenRepository.findByUsername(username).orElse(null);
+        if (existToken == null) {
+            refreshTokenRepository.save(new RefreshToken(username, refreshToken));
+        } else {
+            existToken.update(refreshToken);
+        }
+//        refreshTokenRepository.save(new RefreshToken(username, refreshToken));
     }
 
 }
