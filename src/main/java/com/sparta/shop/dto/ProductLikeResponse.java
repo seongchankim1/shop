@@ -5,13 +5,13 @@ import com.sparta.shop.entity.Like;
 import lombok.Data;
 
 @Data
-public class LikeResponse {
+public class ProductLikeResponse {
 
 	private Long id;
 	private String username;
 	private String productName;
 
-	public LikeResponse(Like like) {
+	public ProductLikeResponse(Like like) {
 		this.id = like.getId();
 		this.username = like.getUser().getUsername();
 		this.productName = like.getProduct().getName();

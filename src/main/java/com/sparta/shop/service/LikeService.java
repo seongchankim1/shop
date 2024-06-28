@@ -6,9 +6,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.sparta.shop.entity.Like;
 import com.sparta.shop.entity.Product;
+import com.sparta.shop.entity.Review;
 import com.sparta.shop.entity.User;
 import com.sparta.shop.repository.LikeRepository;
 import com.sparta.shop.repository.ProductRepository;
+import com.sparta.shop.repository.ReviewRepository;
 import com.sparta.shop.security.UserDetailsImpl;
 
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ public class LikeService {
 
 	private final LikeRepository likeRepository;
 	private final ProductRepository productRepository;
+	private final ReviewRepository reviewRepository;
 
 	@Transactional
 	public Like productLike(Long product_id, User user) {
@@ -34,7 +37,34 @@ public class LikeService {
 		} else {
 			Like newLike = new Like(user, product);
 			likeRepository.save(newLike);
+			validateLike(newLike.getProduct(), newLike.getReview());
 			return newLike;
+		}
+	}
+
+	@Transactional
+	public Like reviewLike(Long review_id, User user) {
+		Review review = reviewRepository.findById(review_id)
+			.orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
+
+		Like like = likeRepository.findByReviewAndUser(review, user);
+
+		if (like != null) {
+			likeRepository.delete(like);
+			return like;
+		} else {
+			Like newLike = new Like(user, review);
+			likeRepository.save(newLike);
+			validateLike(newLike.getProduct(), newLike.getReview());
+			return newLike;
+		}
+	}
+
+
+	// 혹시 모를 중복 방지
+	private void validateLike(Product product, Review review) {
+		if (product != null && review != null) {
+			throw new IllegalArgumentException("리뷰와 상품에 동시에 좋아요 할 수 없습니다.");
 		}
 	}
 }
