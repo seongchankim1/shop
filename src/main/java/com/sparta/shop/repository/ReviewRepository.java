@@ -9,4 +9,5 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     List<Review> findAllByProductIdOrderByCreatedAt(Long productId);
 
+	Review findByContent(String content);
 }
