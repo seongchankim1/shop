@@ -1,5 +1,10 @@
 package com.sparta.shop.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,4 +72,9 @@ public class LikeService {
 			throw new IllegalArgumentException("리뷰와 상품에 동시에 좋아요 할 수 없습니다.");
 		}
 	}
+
+	public Page<Like> findAllProductLikes(Pageable pageable, User user) {
+
+		return likeRepository.findByUserAndProductIsNotNull(user, pageable);
+			}
 }
