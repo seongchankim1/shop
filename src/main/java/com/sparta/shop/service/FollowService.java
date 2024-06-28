@@ -5,7 +5,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.sparta.shop.dto.FollowRequest;
 import com.sparta.shop.entity.Follow;
-import com.sparta.shop.entity.Order;
 import com.sparta.shop.entity.User;
 import com.sparta.shop.repository.FollowRepository;
 import com.sparta.shop.repository.UserRepository;
@@ -21,9 +20,8 @@ public class FollowService {
 	private final UserRepository userRepository;
 
 	@Transactional
-	public Follow follow(FollowRequest request, User user) {
+	public Follow follow(FollowRequest request, User following) {
 
-		User following = user;
 		User follower = userRepository.findById(request.getFollowerId())
 			.orElseThrow(() -> new RuntimeException("팔로우 대상을 찾을 수 없습니다."));
 
