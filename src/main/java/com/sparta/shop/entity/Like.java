@@ -1,8 +1,6 @@
 package com.sparta.shop.entity;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -21,7 +19,7 @@ public class Like {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private int id;
+	private Long id;
 
 	@ManyToOne
 	@JoinColumn(name = "user_id")
@@ -34,5 +32,10 @@ public class Like {
 	@ManyToOne
 	@JoinColumn(name = "review_id")
 	private Review review;
+
+	public Like(User user, Product product) {
+		this.user = user;
+		this.product = product;
+	}
 
 }
