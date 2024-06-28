@@ -16,6 +16,7 @@ import com.sparta.shop.entity.User;
 import com.sparta.shop.repository.LikeRepository;
 import com.sparta.shop.repository.ProductRepository;
 import com.sparta.shop.repository.ReviewRepository;
+import com.sparta.shop.repository.UserRepository;
 import com.sparta.shop.security.UserDetailsImpl;
 
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class LikeService {
 	private final LikeRepository likeRepository;
 	private final ProductRepository productRepository;
 	private final ReviewRepository reviewRepository;
+	private final UserRepository userRepository;
 
 	@Transactional
 	public Like productLike(Long product_id, User user) {
@@ -35,14 +37,18 @@ public class LikeService {
 			.orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
 
 		Like like = likeRepository.findByProductAndUser(product, user);
-
+		int likeCount = user.getProductLikeCount();
 		if (like != null) {
 			likeRepository.delete(like);
+			user.updateProductLikeCount(likeCount - 1);
+			userRepository.save(user);
 			return like;
 		} else {
 			Like newLike = new Like(user, product);
 			likeRepository.save(newLike);
 			validateLike(newLike.getProduct(), newLike.getReview());
+			user.updateProductLikeCount(likeCount + 1);
+			userRepository.save(user);
 			return newLike;
 		}
 	}
@@ -53,14 +59,19 @@ public class LikeService {
 			.orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
 
 		Like like = likeRepository.findByReviewAndUser(review, user);
+		int reviewCount = user.getReviewLikeCount();
 
 		if (like != null) {
 			likeRepository.delete(like);
+			user.updateReviewLikeCount(reviewCount - 1);
+			userRepository.save(user);
 			return like;
 		} else {
 			Like newLike = new Like(user, review);
 			likeRepository.save(newLike);
 			validateLike(newLike.getProduct(), newLike.getReview());
+			user.updateReviewLikeCount(reviewCount + 1);
+			userRepository.save(user);
 			return newLike;
 		}
 	}

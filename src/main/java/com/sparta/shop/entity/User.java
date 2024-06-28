@@ -42,6 +42,9 @@ public class User extends Timestamped {
     @ElementCollection
     private final List<String> passwordHistory = new ArrayList<>();
 
+    private int productLikeCount;
+    private int reviewLikeCount;
+
     /**
      * 생성자
      */
@@ -51,6 +54,8 @@ public class User extends Timestamped {
         this.name = request.getName();
         this.address = request.getAddress();
         this.role = role;
+        this.productLikeCount = 0;
+        this.reviewLikeCount = 0;
     }
 
     /**
@@ -102,6 +107,14 @@ public class User extends Timestamped {
         if (this.role.equals(UserRole.USER)) {
             throw new IllegalArgumentException("관리자 권한이 없는 사용자입니다.");
         }
+    }
+
+    public void updateProductLikeCount(int productLikeCount) {
+        this.productLikeCount = productLikeCount;
+    }
+
+    public void updateReviewLikeCount(int reviewLikeCount) {
+        this.reviewLikeCount = reviewLikeCount;
     }
 
     public List<String> getPasswordHistory() {
