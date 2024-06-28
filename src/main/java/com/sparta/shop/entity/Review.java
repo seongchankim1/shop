@@ -1,6 +1,10 @@
 package com.sparta.shop.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.sparta.shop.base.entity.Timestamped;
+import com.sparta.shop.orderline.OrderLine;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -14,6 +18,7 @@ public class Review extends Timestamped {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "review_id")
     private Long id;
 
     @Column(nullable = false)
@@ -26,6 +31,9 @@ public class Review extends Timestamped {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
+    private final List<Like> likeList = new ArrayList<>();
 
     /**
      * 정적 팩토리 메서드

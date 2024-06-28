@@ -1,5 +1,8 @@
 package com.sparta.shop.entity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.sparta.shop.base.entity.Timestamped;
 import com.sparta.shop.exception.NotEnoughStockException;
 import com.sparta.shop.dto.ProductRequest;
@@ -31,6 +34,9 @@ public class Product extends Timestamped {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private final List<Like> likeList = new ArrayList<>();
 
     /**
      * 생성자
