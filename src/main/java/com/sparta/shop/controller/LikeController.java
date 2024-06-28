@@ -66,7 +66,7 @@ public class LikeController {
 		return getResponseEntity(response, "좋아요 " + liked);
 	}
 
-	@GetMapping
+	@GetMapping("/product")
 	public ResponseEntity<CommonResponse<?>> getAllProductLikes(
 		@PageableDefault(
 			sort = "createdAt",
@@ -77,6 +77,21 @@ public class LikeController {
 	) {
 		Page<Like> page = likeService.findAllProductLikes(pageable, userDetails.getUser());
 		Page<ProductLikeResponse> response = page.map(ProductLikeResponse::new);
+
+		return getResponseEntity(response, "상품 좋아요 목록");
+	}
+
+	@GetMapping("/review")
+	public ResponseEntity<CommonResponse<?>> getAllReviewLikes(
+		@PageableDefault(
+			sort = "createdAt",
+			size = 5,
+			direction = Sort.Direction.DESC
+		) Pageable pageable,
+		@AuthenticationPrincipal UserDetailsImpl userDetails
+	) {
+		Page<Like> page = likeService.findAllReviewLikes(pageable, userDetails.getUser());
+		Page<ReviewLikeResponse> response = page.map(ReviewLikeResponse::new);
 
 		return getResponseEntity(response, "상품 좋아요 목록");
 	}

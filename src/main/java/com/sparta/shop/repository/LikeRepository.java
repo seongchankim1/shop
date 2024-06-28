@@ -18,4 +18,6 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
 	Like findByReviewAndUser(Review review, User user);
 
 	Page<Like> findByUserAndProductIsNotNull(User user, Pageable pageable);
+
+	Page<Like> findByUserAndReviewIsNotNull(User user, Pageable pageable);
 }

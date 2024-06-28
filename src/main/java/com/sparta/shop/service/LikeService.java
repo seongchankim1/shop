@@ -77,4 +77,9 @@ public class LikeService {
 
 		return likeRepository.findByUserAndProductIsNotNull(user, pageable);
 			}
+
+	public Page<Like> findAllReviewLikes(Pageable pageable, User user) {
+
+		return likeRepository.findByUserAndReviewIsNotNull(user, pageable);
+	}
 }
