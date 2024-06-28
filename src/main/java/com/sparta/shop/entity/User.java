@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.Cascade;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -44,6 +46,12 @@ public class User extends Timestamped {
 
     private int productLikeCount;
     private int reviewLikeCount;
+
+    @OneToMany(mappedBy = "follower", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Follow> followers = new ArrayList<>();
+
+    @OneToMany(mappedBy = "following", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<Follow> followings = new ArrayList<>();
 
     /**
      * 생성자
