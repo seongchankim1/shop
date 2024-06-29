@@ -111,7 +111,7 @@ public class FollowController {
 	public ResponseEntity<CommonResponse<?>> getFollowRank(
 		@PageableDefault(
 			sort = "followCount",
-			size = 5,
+			size = 10, // default
 			direction = Sort.Direction.DESC
 		) Pageable pageable
 	) {
