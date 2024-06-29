@@ -53,6 +53,8 @@ public class User extends Timestamped {
     @OneToMany(mappedBy = "following", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Follow> followings = new ArrayList<>();
 
+    private int followCount;
+
     /**
      * 생성자
      */
@@ -64,6 +66,7 @@ public class User extends Timestamped {
         this.role = role;
         this.productLikeCount = 0;
         this.reviewLikeCount = 0;
+        this.followCount = 0;
     }
 
     /**
@@ -129,4 +132,7 @@ public class User extends Timestamped {
         return new ArrayList<>(passwordHistory); // 외부에 직접적인 접근을 막기 위해 복사본 반환 (캡슐화)
     }
 
+    public void updateFollowCount(int followCount) {
+        this.followCount = followCount;
+    }
 }

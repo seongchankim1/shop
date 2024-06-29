@@ -23,13 +23,16 @@ import com.sparta.shop.dto.FollowResponse;
 import com.sparta.shop.dto.OrderRequest;
 import com.sparta.shop.dto.OrderResponse;
 import com.sparta.shop.dto.ReviewResponse;
+import com.sparta.shop.dto.UserResponse;
 import com.sparta.shop.entity.Follow;
 import com.sparta.shop.entity.Order;
 import com.sparta.shop.entity.Review;
 import com.sparta.shop.entity.User;
+import com.sparta.shop.repository.UserRepository;
 import com.sparta.shop.security.UserDetailsImpl;
 import com.sparta.shop.service.FollowService;
 import com.sparta.shop.service.ReviewService;
+import com.sparta.shop.service.UserService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +44,8 @@ public class FollowController {
 
 	private final FollowService followService;
 	private final ReviewService reviewService;
+	private final UserRepository userRepository;
+	private final UserService userService;
 
 	@PostMapping
 	public ResponseEntity<CommonResponse<?>> follow(
@@ -102,5 +107,17 @@ public class FollowController {
 		return getResponseEntity(response, "팔로우한 사람들의 리뷰 조회 성공 (이름순)");
 	}
 
+	@GetMapping("/rank")
+	public ResponseEntity<CommonResponse<?>> getFollowRank(
+		@PageableDefault(
+			sort = "followCount",
+			size = 5,
+			direction = Sort.Direction.DESC
+		) Pageable pageable
+	) {
+		Page<User> page = userService.followRank(pageable);
+		Page<UserResponse> response = page.map(UserResponse::new);
 
+		return getResponseEntity(response, "팔로우 랭킹 조회 성공");
+	}
 }

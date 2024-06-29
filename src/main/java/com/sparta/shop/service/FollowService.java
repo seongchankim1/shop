@@ -29,6 +29,8 @@ public class FollowService {
 		if (follow == null) {
 			Follow newFollow = new Follow(follower, following);
 			followRepository.save(newFollow);
+			follower.updateFollowCount(follower.getFollowCount() + 1);
+			userRepository.save(follower);
 			return newFollow;
 		} else {
 			throw new IllegalArgumentException("이미 팔로우중입니다.");
@@ -45,9 +47,13 @@ public class FollowService {
 		Follow follow = followRepository.findByFollowerAndFollowing(follower, following);
 		if (follow != null) {
 			followRepository.delete(follow);
+			follower.updateFollowCount(follower.getFollowCount() - 1);
+			userRepository.save(follower);
 			return follow;
 		} else {
 			throw new IllegalArgumentException("팔로우중이지 않습니다.");
 		}
 	}
+
+
 }

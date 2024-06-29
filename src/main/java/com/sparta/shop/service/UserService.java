@@ -1,5 +1,10 @@
 package com.sparta.shop.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import com.sparta.shop.entity.Follow;
+import com.sparta.shop.entity.Review;
 import com.sparta.shop.jwt.RefreshTokenRepository;
 import com.sparta.shop.dto.ProfileRequest;
 import com.sparta.shop.dto.RoleRequest;
@@ -8,7 +13,9 @@ import com.sparta.shop.dto.PasswordUpdateRequest;
 import com.sparta.shop.entity.User;
 import com.sparta.shop.entity.UserRole;
 import com.sparta.shop.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,108 +28,112 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final RefreshTokenRepository refreshTokenRepository;
+	private final UserRepository userRepository;
+	private final PasswordEncoder passwordEncoder;
+	private final RefreshTokenRepository refreshTokenRepository;
 
-    @Value("${admin.token}")
-    private String adminToken;
+	@Value("${admin.token}")
+	private String adminToken;
 
-    /**
-     * 회원가입
-     */
-    @Transactional
-    public User signup(SignupRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
-        }
+	/**
+	 * 회원가입
+	 */
+	@Transactional
+	public User signup(SignupRequest request) {
+		if (userRepository.existsByUsername(request.getUsername())) {
+			throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
+		}
 
-        UserRole role = UserRole.USER;
-        if (request.isAdmin()) {
-            if (!request.getAdminToken().equals(adminToken)) {
-                throw new IllegalArgumentException("어드민 토큰이 일치하지 않습니다.");
-            }
-            role = UserRole.ADMIN;
-        }
+		UserRole role = UserRole.USER;
+		if (request.isAdmin()) {
+			if (!request.getAdminToken().equals(adminToken)) {
+				throw new IllegalArgumentException("어드민 토큰이 일치하지 않습니다.");
+			}
+			role = UserRole.ADMIN;
+		}
 
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
+		String encodedPassword = passwordEncoder.encode(request.getPassword());
 
-        User user = new User(request, encodedPassword, role);
-        user.addPasswordToHistory(encodedPassword);
+		User user = new User(request, encodedPassword, role);
+		user.addPasswordToHistory(encodedPassword);
 
-        return userRepository.save(user);
-    }
+		return userRepository.save(user);
+	}
 
-    /**
-     * 로그아웃
-     */
-    @Transactional
-    public Long logout(User user) {
-        refreshTokenRepository.deleteByUsername(user.getUsername());
+	/**
+	 * 로그아웃
+	 */
+	@Transactional
+	public Long logout(User user) {
+		refreshTokenRepository.deleteByUsername(user.getUsername());
 
-        return user.getId();
-    }
+		return user.getId();
+	}
 
-    /**
-     * 전체 회원 조회 (관리자 전용)
-     */
-    public Page<User> findAllUsers(Pageable pageable, User admin) {
-        admin.validateAdmin();
-        return userRepository.findAll(pageable);
-    }
+	/**
+	 * 전체 회원 조회 (관리자 전용)
+	 */
+	public Page<User> findAllUsers(Pageable pageable, User admin) {
+		admin.validateAdmin();
+		return userRepository.findAll(pageable);
+	}
 
-    /**
-     * 회원 조회
-     */
-    public User findUser(Long userId) {
-        return userRepository.findById(userId).orElseThrow(() ->
-                new IllegalArgumentException("존재하지 않는 회원입니다."));
-    }
+	/**
+	 * 회원 조회
+	 */
+	public User findUser(Long userId) {
+		return userRepository.findById(userId).orElseThrow(() ->
+			new IllegalArgumentException("존재하지 않는 회원입니다."));
+	}
 
-    /**
-     * 프로필 수정
-     */
-    @Transactional
-    public User updateProfile(Long userId, ProfileRequest request) {
-        User user = findUser(userId);
-        user.updateProfile(request);
+	/**
+	 * 프로필 수정
+	 */
+	@Transactional
+	public User updateProfile(Long userId, ProfileRequest request) {
+		User user = findUser(userId);
+		user.updateProfile(request);
 
-        return user;
-    }
+		return user;
+	}
 
-    /**
-     * 비밀번호 수정
-     */
-    @Transactional
-    public User updatePassword(Long userId, PasswordUpdateRequest request) {
-        User user = findUser(userId);
-        String currentPassword = user.getPassword();
+	/**
+	 * 비밀번호 수정
+	 */
+	@Transactional
+	public User updatePassword(Long userId, PasswordUpdateRequest request) {
+		User user = findUser(userId);
+		String currentPassword = user.getPassword();
 
-        String oldPassword = request.getOldPassword();
-        if (!passwordEncoder.matches(oldPassword, currentPassword)) {
-            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
-        }
+		String oldPassword = request.getOldPassword();
+		if (!passwordEncoder.matches(oldPassword, currentPassword)) {
+			throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+		}
 
-        String newPassword = request.getNewPassword();
-        if (passwordEncoder.matches(newPassword, currentPassword)) {
-            throw new IllegalArgumentException("현재 비밀번호와 동일한 비밀번호로 수정할 수 없습니다.");
-        }
+		String newPassword = request.getNewPassword();
+		if (passwordEncoder.matches(newPassword, currentPassword)) {
+			throw new IllegalArgumentException("현재 비밀번호와 동일한 비밀번호로 수정할 수 없습니다.");
+		}
 
-        user.updatePassword(passwordEncoder.encode(newPassword));
+		user.updatePassword(passwordEncoder.encode(newPassword));
 
-        return user;
-    }
+		return user;
+	}
 
-    /**
-     * 회원 권한 수정 (관리자 전용)
-     */
-    @Transactional
-    public User updateRole(RoleRequest request, User admin) {
-        admin.validateAdmin();
-        User user = findUser(request.getUserId());
-        user.updateRole(request.getRole());
+	/**
+	 * 회원 권한 수정 (관리자 전용)
+	 */
+	@Transactional
+	public User updateRole(RoleRequest request, User admin) {
+		admin.validateAdmin();
+		User user = findUser(request.getUserId());
+		user.updateRole(request.getRole());
 
-        return user;
-    }
+		return user;
+	}
 
+	public Page<User> followRank(Pageable pageable) {
+		return userRepository.findAllByOrderByFollowCountDesc(pageable);
+	}
 }
+
