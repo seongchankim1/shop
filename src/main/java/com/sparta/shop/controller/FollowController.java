@@ -72,8 +72,8 @@ public class FollowController {
 		return getResponseEntity(response, "팔로우 취소 성공");
 	}
 
-	@GetMapping("/review")
-	public ResponseEntity<CommonResponse<?>> getFollowReview(
+	@GetMapping("/review/sort/time")
+	public ResponseEntity<CommonResponse<?>> getFollowReviewByCreatedAt(
 		@PageableDefault(
 			sort = "createdAt",
 			size = 5,
@@ -84,7 +84,22 @@ public class FollowController {
 		Page<Review> page = reviewService.findAllReviewByFollowingList(pageable, userDetails.getUser());
 		Page<ReviewResponse> response = page.map(ReviewResponse::new);
 
-		return getResponseEntity(response, "팔로우한 사람들의 리뷰 조회 성공");
+		return getResponseEntity(response, "팔로우한 사람들의 리뷰 조회 성공 (최신순)");
+	}
+
+	@GetMapping("/review/sort/name")
+	public ResponseEntity<CommonResponse<?>> getFollowReviewByName(
+		@PageableDefault(
+			sort = "username",
+			size = 5,
+			direction = Sort.Direction.ASC
+		) Pageable pageable,
+		@AuthenticationPrincipal UserDetailsImpl userDetails
+	) {
+		Page<Review> page = reviewService.findAllReviewByFollowingList(pageable, userDetails.getUser());
+		Page<ReviewResponse> response = page.map(ReviewResponse::new);
+
+		return getResponseEntity(response, "팔로우한 사람들의 리뷰 조회 성공 (이름순)");
 	}
 
 

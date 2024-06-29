@@ -35,6 +35,8 @@ public class Review extends Timestamped {
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
     private final List<Like> likeList = new ArrayList<>();
 
+    private String username;
+
     /**
      * 정적 팩토리 메서드
      */
@@ -43,6 +45,7 @@ public class Review extends Timestamped {
         review.product = product;
         review.user = user;
         review.content = content;
+        review.username = user.getName();
 
         return review;
     }
