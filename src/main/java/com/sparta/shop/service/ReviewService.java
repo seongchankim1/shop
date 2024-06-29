@@ -1,15 +1,21 @@
 package com.sparta.shop.service;
 
+import com.sparta.shop.entity.Follow;
 import com.sparta.shop.entity.Product;
 import com.sparta.shop.dto.ReviewRequest;
 import com.sparta.shop.entity.Review;
+import com.sparta.shop.repository.FollowRepository;
 import com.sparta.shop.repository.ReviewRepository;
 import com.sparta.shop.entity.User;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +24,7 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final ProductService productService;
+    private final FollowRepository followRepository;
 
     /**
      * 리뷰 작성
@@ -74,6 +81,17 @@ public class ReviewService {
         reviewRepository.delete(review);
 
         return reviewId;
+    }
+
+    /**
+     * 팔로우한 사람들의 리뷰 조회
+     */
+    public Page<Review> findAllReviewByFollowingList(Pageable pageable, User follower) {
+        List<Follow> followList = followRepository.findAllByFollowingId(follower.getId());
+        List<User> followingList = followList.stream()
+            .map(Follow::getFollower)
+            .collect(Collectors.toList());
+        return reviewRepository.findAllByUserIn(pageable, followingList);
     }
 
 }
